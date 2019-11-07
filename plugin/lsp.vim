@@ -11,6 +11,7 @@ let g:lsp_debug_servers = get(g:, 'lsp_debug_servers', [])
 let g:lsp_signs_enabled = get(g:, 'lsp_signs_enabled', exists('*sign_define') && (has('nvim') || has('patch-8.1.0772')))
 let g:lsp_signs_priority = get(g:, 'lsp_signs_priority', 10)
 let g:lsp_virtual_text_enabled = get(g:, 'lsp_virtual_text_enabled', exists('*nvim_buf_set_virtual_text'))
+let g:lsp_virtual_text_prefix = get(g:, 'lsp_virtual_text_prefix', '')
 let g:lsp_highlights_enabled = get(g:, 'lsp_highlights_enabled', exists('*nvim_buf_add_highlight'))
 let g:lsp_textprop_enabled = get(g:, 'lsp_textprop_enabled', exists('*prop_add') && !g:lsp_highlights_enabled)
 let g:lsp_signs_error = get(g:, 'lsp_signs_error', {})
@@ -95,6 +96,8 @@ nnoremap <plug>(lsp-peek-type-definition) :<c-u>call lsp#ui#vim#type_definition(
 nnoremap <plug>(lsp-workspace-symbol) :<c-u>call lsp#ui#vim#workspace_symbol()<cr>
 nnoremap <plug>(lsp-document-format) :<c-u>call lsp#ui#vim#document_format()<cr>
 vnoremap <plug>(lsp-document-format) :<Home>silent <End>call lsp#ui#vim#document_range_format()<cr>
+nnoremap <plug>(lsp-document-range-format) :<c-u>set opfunc=lsp#ui#vim#document_range_format_opfunc<cr>g@
+xnoremap <plug>(lsp-document-range-format) :<Home>silent <End>call lsp#ui#vim#document_range_format()<cr>
 nnoremap <plug>(lsp-implementation) :<c-u>call lsp#ui#vim#implementation(0)<cr>
 nnoremap <plug>(lsp-peek-implementation) :<c-u>call lsp#ui#vim#implementation(1)<cr>
 nnoremap <plug>(lsp-status) :<c-u>echo lsp#get_server_status()<cr>

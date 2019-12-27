@@ -213,10 +213,14 @@ function! s:on_text_document_did_save() abort
     if getbufvar(l:buf, '&buftype') ==# 'terminal' | return | endif
     call lsp#log('s:on_text_document_did_save()', l:buf)
     for l:server_name in lsp#get_whitelisted_servers(l:buf)
-        " We delay the callback by one loop iteration as calls to ensure_flush
-        " can introduce mmap'd file locks that linger on Windows and collide
-        " with the second lang server call preventing saves (see #455)
-        call s:ensure_flush(l:buf, l:server_name, {result->timer_start(0, {timer->s:call_did_save(l:buf, l:server_name, result, function('s:Noop'))})})
+        if g:lsp_text_document_did_save_delay >= 0
+            " We delay the callback by one loop iteration as calls to ensure_flush
+            " can introduce mmap'd file locks that linger on Windows and collide
+            " with the second lang server call preventing saves (see #455)
+            call s:ensure_flush(l:buf, l:server_name, {result->timer_start(g:lsp_text_document_did_save_delay, {timer->s:call_did_save(l:buf, l:server_name, result, function('s:Noop'))})})
+        else
+            call s:ensure_flush(l:buf, l:server_name, {result->s:call_did_save(l:buf, l:server_name, result, function('s:Noop'))})
+        endif
     endfor
 endfunction
 
@@ -439,10 +443,14 @@ function! lsp#default_get_supported_capabilities(server_info) abort
     \       'documentSymbol': {
     \           'symbolKind': {
     \              'valueSet': lsp#ui#vim#utils#get_symbol_kinds()
-    \           }
+    \           },
+    \           'hierarchicalDocumentSymbolSupport': v:false
     \       },
     \       'foldingRange': {
     \           'lineFoldingOnly': v:true
+    \       },
+    \       'semanticHighlightingCapabilities': {
+    \           'semanticHighlighting': lsp#ui#vim#semantic#is_enabled()
     \       }
     \   }
     \ }
@@ -678,6 +686,8 @@ function! s:on_notification(server_name, id, data, event) abort
         if has_key(l:response, 'method')
             if g:lsp_diagnostics_enabled && l:response['method'] ==# 'textDocument/publishDiagnostics'
                 call lsp#ui#vim#diagnostics#handle_text_document_publish_diagnostics(a:server_name, a:data)
+            elseif l:response['method'] ==# 'textDocument/semanticHighlighting'
+                call lsp#ui#vim#semantic#handle_semantic(a:server_name, a:data)
             endif
         endif
     else

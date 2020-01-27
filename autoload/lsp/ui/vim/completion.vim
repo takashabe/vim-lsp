@@ -128,6 +128,7 @@ function! s:resolve_completion_item(completion_item, server_name) abort
   " check server capabilities.
   let l:capabilities = lsp#get_server_capabilities(a:server_name)
   if !has_key(l:capabilities, 'completionProvider')
+        \ || type(l:capabilities['completionProvider']) != v:t_dict
         \ || !has_key(l:capabilities['completionProvider'], 'resolveProvider')
         \ || !l:capabilities['completionProvider']['resolveProvider']
     return a:completion_item
@@ -212,7 +213,7 @@ endfunction
 "
 function! s:get_expand_text(completed_item, completion_item) abort
   let l:text = a:completed_item['word']
-  if has_key(a:completion_item, 'textEdit')
+  if has_key(a:completion_item, 'textEdit') && type(a:completion_item['textEdit']) == v:t_dict
     let l:text = a:completion_item['textEdit']['newText']
   elseif has_key(a:completion_item, 'insertText')
     let l:text = a:completion_item['insertText']

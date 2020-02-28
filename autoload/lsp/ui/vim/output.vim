@@ -149,7 +149,6 @@ function! s:setcontent(lines, ft) abort
     if s:use_vim_popup
         " vim popup
         call setbufline(winbufnr(s:winid), 1, a:lines)
-        let l:lightline_toggle = v:false
         call win_execute(s:winid, 'setlocal filetype=' . a:ft . '.lsp-hover')
     else
         " nvim floating or preview

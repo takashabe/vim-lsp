@@ -90,18 +90,11 @@ function! s:on_complete_done_after() abort
 
   " apply additionalTextEdits.
   if has_key(l:completion_item, 'additionalTextEdits') && !empty(l:completion_item['additionalTextEdits'])
-    let l:saved_mark = getpos("'a")
-    let l:pos = getpos('.')
-    call setpos("'a", l:pos)
     call lsp#utils#text_edit#apply_text_edits(
           \ lsp#utils#get_buffer_uri(bufnr('%')),
           \ l:completion_item['additionalTextEdits']
           \ )
-    let l:pos = getpos("'a")
-    call setpos("'a", l:saved_mark)
-    call setpos('.', l:pos)
   endif
-
 
   " expand textEdit or insertText.
   if strlen(l:expand_text) > 0
@@ -233,8 +226,8 @@ function! s:simple_expand_text(text) abort
 
   " Remove placeholders and get first placeholder position that use to cursor position.
   " e.g. `|getbufline(${1:expr}, ${2:lnum})${0}` to getbufline(|,)
-  let l:text = substitute(a:text, '\$\%({[0-9]*[^}]*}\|[0-9]*\)', '', 'g')
-  let l:offset = match(a:text, '\$\%({[0-9]*[^}]*}\|[0-9]*\)')
+  let l:text = substitute(a:text, '\$\%({[0-9]\+\%(:\(\\.\|[^}]\+\)*\)}\|[0-9]\+\)', '\=substitute(submatch(1), "\\", "", "g")', 'g')
+  let l:offset = match(a:text, '\$\%({[0-9]\+\%(:\(\\.\|[^}]\+\)*\)}\|[0-9]\+\)')
   if l:offset == -1
     let l:offset = strchars(l:text)
   endif

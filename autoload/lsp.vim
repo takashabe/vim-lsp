@@ -85,6 +85,10 @@ function! lsp#get_server_info(server_name) abort
     return s:servers[a:server_name]['server_info']
 endfunction
 
+function! lsp#get_server_root_uri(server_name) abort
+    return get(s:servers[a:server_name]['server_info'], '_root_uri_resolved', '')
+endfunction
+
 function! lsp#get_server_capabilities(server_name) abort
     let l:server = s:servers[a:server_name]
     return has_key(l:server, 'init_result') ? l:server['init_result']['result']['capabilities'] : {}
@@ -209,9 +213,19 @@ function! s:on_text_document_did_open() abort
     if getbufvar(l:buf, '&buftype') ==# 'terminal' | return | endif
     if getcmdwintype() !=# '' | return | endif
     call lsp#log('s:on_text_document_did_open()', l:buf, &filetype, getcwd(), lsp#utils#get_buffer_uri(l:buf))
+
+    " Some language server notify diagnostics to the buffer that has not been loaded yet.
+    " This diagnostics was stored `autoload/lsp/ui/vim/diagnostics.vim` but not highlighted.
+    " So we should refresh highlights when buffer opened.
+    call lsp#ui#vim#diagnostics#force_refresh(l:buf)
+
     for l:server_name in lsp#get_whitelisted_servers(l:buf)
         call s:ensure_flush(l:buf, l:server_name, function('s:fire_lsp_buffer_enabled', [l:server_name, l:buf]))
     endfor
+endfunction
+
+function! lsp#activate() abort
+  call s:on_text_document_did_open()
 endfunction
 
 function! s:on_text_document_did_save() abort
@@ -504,18 +518,13 @@ function! s:ensure_init(buf, server_name, cb) abort
     " server has already started, but not initialized
 
     let l:server_info = l:server['server_info']
-    if has_key(l:server_info, 'root_uri')
-        let l:root_uri = l:server_info['root_uri'](l:server_info)
-    else
-        let l:root_uri = lsp#utils#get_default_root_uri()
-    endif
-
+    let l:root_uri = has_key(l:server_info, 'root_uri') ?  l:server_info['root_uri'](l:server_info) : ''
     if empty(l:root_uri)
         let l:msg = s:new_rpc_error('ignore initialization lsp server due to empty root_uri', { 'server_name': a:server_name, 'lsp_id': l:server['lsp_id'] })
         call lsp#log(l:msg)
-        call a:cb(l:msg)
-        return
+        let l:root_uri = lsp#utils#get_default_root_uri()
     endif
+    let l:server['server_info']['_root_uri_resolved'] = l:root_uri
 
     if has_key(l:server_info, 'capabilities')
         let l:capabilities = l:server_info['capabilities']

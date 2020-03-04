@@ -166,6 +166,16 @@ function! lsp#register_server(server_info) abort
     doautocmd User lsp_register_server
 endfunction
 
+"
+" lsp#register_command
+"
+" @param {command_name} = string
+" @param {callback} = funcref
+"
+function! lsp#register_command(command_name, callback) abort
+    call lsp#ui#vim#execute_command#_register(a:command_name, a:callback)
+endfunction
+
 function! lsp#register_notifications(name, callback) abort
     call add(s:notification_callbacks, { 'name': a:name, 'callback': a:callback })
 endfunction
@@ -601,6 +611,12 @@ function! s:ensure_changed(buf, server_name, cb) abort
     let l:path = lsp#utils#get_buffer_uri(a:buf)
 
     let l:buffers = l:server['buffers']
+    if !has_key(l:buffers, l:path)
+        let l:msg = s:new_rpc_success('file is not managed', { 'server_name': a:server_name, 'path': l:path })
+        call lsp#log(l:msg)
+        call a:cb(l:msg)
+        return
+    endif
     let l:buffer_info = l:buffers[l:path]
 
     let l:changed_tick = getbufvar(a:buf, 'changedtick')
@@ -634,7 +650,7 @@ function! s:ensure_open(buf, server_name, cb) abort
     let l:path = lsp#utils#get_buffer_uri(a:buf)
 
     if empty(l:path)
-        let l:msg = s:new_rpc_error('ignore open since not a valid uri', { 'server_name': a:server_name, 'path': l:path })
+        let l:msg = s:new_rpc_success('ignore open since not a valid uri', { 'server_name': a:server_name, 'path': l:path })
         call lsp#log(l:msg)
         call a:cb(l:msg)
         return

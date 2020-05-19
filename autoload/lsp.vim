@@ -29,6 +29,7 @@ augroup _lsp_silent_
     autocmd User lsp_float_opened silent
     autocmd User lsp_float_closed silent
     autocmd User lsp_buffer_enabled silent
+    autocmd User lsp_diagnostics_updated silent
 augroup END
 
 function! lsp#log_verbose(...) abort
@@ -352,7 +353,9 @@ function! s:fire_lsp_buffer_enabled(server_name, buf, ...) abort
     if a:buf == bufnr('%')
         doautocmd User lsp_buffer_enabled
     else
-        exec printf('autocmd BufEnter <buffer=%d> ++once doautocmd User lsp_buffer_enabled', a:buf)
+        " Not using ++once in autocmd for compatibility of VIM8.0
+        let l:cmd = printf('autocmd BufEnter <buffer=%d> doautocmd User lsp_buffer_enabled', a:buf)
+        exec printf('augroup _lsp_fire_buffer_enabled | exec "%s | autocmd! _lsp_fire_buffer_enabled BufEnter <buffer>" | augroup END', l:cmd)
     endif
 endfunction
 
